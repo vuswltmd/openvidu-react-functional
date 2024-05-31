@@ -3,36 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import UserVideoComponent from '../component/UserVideoComponent';
 import { initializeSession } from '../service/openviduService';
 import { getToken } from '../service/api';
-// 스타일 및 로고
 import voiceIcon from '../assets/icons/voice_Icon.png';
 import headphoneIcon from '../assets/icons/headphone_Icon.png';
 import callEndIcon from '../assets/icons/call_end_Icon.png';
-// 채팅
 import Chat from './chat';
-// 스타일드 컴포넌트
 import { Container, Button, VideoContainer, ButtonContainer, IconButton, IconImage, ChatIcon } from './SessionPageStyle';
 
-const MAX_PARTICIPANTS = 4; // 최대 인원 설정
+const MAX_PARTICIPANTS = 4;
 
 function SessionPage() {
     const [isOpen, setIsOpen] = useState(false);
     const toggleChat = () => setIsOpen(!isOpen);
-
-    const [inputValue, setInputValue] = useState('');
-    const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState([]);
-    const [users, setUsers] = useState([]);
-
-    const handleSendMessage = () => {
-        if (inputValue.trim() !== '') {
-            setMessages([...messages, { text: inputValue, isUser: true, user: 'You' }]);
-            setInputValue('');
-        }
-    };
-
-    const handleCloseChat = () => {
-        setIsOpen(false);
-    };
+    const handleCloseChat = () => setIsOpen(false);
 
     const { roomNumber } = useParams();
     const navigate = useNavigate();
@@ -41,7 +23,9 @@ function SessionPage() {
     const [publisher, setPublisher] = useState(undefined);
     const [subscribers, setSubscribers] = useState([]);
     const [currentVideoDevice, setCurrentVideoDevice] = useState(null);
-    const OV = useRef(null); // 초기에는 null로 설정
+    const [messages, setMessages] = useState([]);  // 추가된 부분
+    const [users, setUsers] = useState([]);        // 추가된 부분
+    const OV = useRef(null);
     const hasJoined = useRef(false);
 
     const handleMainVideoStream = useCallback((stream) => {
@@ -54,7 +38,7 @@ function SessionPage() {
         if (session) {
             console.log('Session connection data:', session.connection.data);
             const userList = [
-                { id: session.connection.connectionId, nickname: session.connection.data }, // 나 자신
+                { id: session.connection.connectionId, nickname: session.connection.data },
                 ...session.remoteConnections.map((conn) => ({
                     id: conn.connectionId,
                     nickname: conn.data,
@@ -96,8 +80,8 @@ function SessionPage() {
         const token = await getToken(roomNumber);
 
         try {
-            await mySession.connect(token, { clientData: 'MyNickname' }); // Set client data here
-            const currentParticipants = mySession.remoteConnections.length + 1; // 자신 포함
+            await mySession.connect(token, { clientData: 'MyNickname' });
+            const currentParticipants = mySession.remoteConnections.length + 1;
 
             if (currentParticipants > MAX_PARTICIPANTS) {
                 alert('The room is full. Please try again later.');
@@ -130,11 +114,9 @@ function SessionPage() {
             setSession(mySession);
             hasJoined.current = true;
 
-            // 업데이트된 유저 목록 설정
             updateUsers();
             mySession.on('connectionCreated', updateUsers);
             mySession.on('connectionDestroyed', updateUsers);
-
 
         } catch (error) {
             console.log('There was an error connecting to the session:', error.code, error.message);
@@ -154,7 +136,7 @@ function SessionPage() {
             session.disconnect();
         }
 
-        OV.current = null; // null로 재설정하여 다시 초기화되도록 함
+        OV.current = null;
         setSession(undefined);
         setSubscribers([]);
         setMainStreamManager(undefined);
@@ -202,35 +184,13 @@ function SessionPage() {
             setSession(undefined);
             hasJoined.current = false;
         };
-    }, [roomNumber]); // roomNumber가 변경될 때마다 useEffect 훅이 실행됩니다.
-
-    const sendMessage = useCallback((e) => {
-        e.preventDefault();
-        const myUserName = "편지승 닉네임 입니다";
-        if (message.trim() !== '') {
-            const messageData = {
-                user: myUserName,
-                text: message
-            };
-            session.signal({
-                data: JSON.stringify(messageData),
-                to: [],
-                type: 'chat',
-            });
-            setMessage('');
-        }
-    }, [message, session]);
+    }, [roomNumber]);
 
     return (
         <Container isOpen={isOpen}>
             <h1 style={{ color: 'red' }}>Room: {roomNumber}</h1>
             <Button onClick={switchCamera}>Switch Camera</Button>
             <VideoContainer isOpen={isOpen}>
-                {mainStreamManager && (
-                    <div onClick={() => handleMainVideoStream(mainStreamManager)}>
-                        <UserVideoComponent streamManager={mainStreamManager} />
-                    </div>
-                )}
                 {mainStreamManager && (
                     <div onClick={() => handleMainVideoStream(mainStreamManager)}>
                         <UserVideoComponent streamManager={mainStreamManager} />
@@ -256,14 +216,8 @@ function SessionPage() {
             {!isOpen && <ChatIcon onClick={toggleChat} />}
             <Chat
                 isOpen={isOpen}
-                messages={messages}
-                inputValue={inputValue}
-                setInputValue={setInputValue}
-                handleSendMessage={handleSendMessage}
                 handleClose={handleCloseChat}
-                message={message}
-                setMessage={setMessage}
-                sendMessage={sendMessage}
+                session={session}
                 users={users}
             />
         </Container>

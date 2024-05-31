@@ -1,10 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import send_Icon from '../assets/icons/send_Icon.png';
 import article_Icon from '../assets/icons/article_Icon.png';
 import keyboard_arrow_down_Icon from '../assets/icons/keyboard_arrow_down_Icon.png';
 import { ChatContainer, ChatCloseButton, Input, SendButton, UserList, User, Avatar, UserName, UserResumeButton, ChatBox, MessageContainer, InputContainer, MessageList, Message } from './ChatStyle';
 
-const Chat = ({ isOpen, messages, inputValue, setInputValue, handleSendMessage, handleClose, message, setMessage, sendMessage, users }) => {
+const Chat = ({ isOpen, handleClose, session, users }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
   const messageListRef = useRef(null);
 
   useEffect(() => {
@@ -12,6 +15,39 @@ const Chat = ({ isOpen, messages, inputValue, setInputValue, handleSendMessage, 
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleSendMessage = useCallback(() => {
+    if (inputValue.trim() !== '') {
+      setMessages([...messages, { text: inputValue, isUser: true, user: 'You' }]);
+      setInputValue('');
+    }
+  }, [inputValue, messages]);
+
+  const sendMessage = useCallback((e) => {
+    e.preventDefault();
+    const myUserName = "MyNickname"; // 닉네임 설정
+    if (message.trim() !== '') {
+      const messageData = {
+        user: myUserName,
+        text: message
+      };
+      session.signal({
+        data: JSON.stringify(messageData),
+        to: [],
+        type: 'chat',
+      });
+      setMessage('');
+    }
+  }, [message, session]);
+
+  useEffect(() => {
+    if (session) {
+      session.on('signal:chat', (event) => {
+        const messageData = JSON.parse(event.data);
+        setMessages((prevMessages) => [...prevMessages, { text: messageData.text, isUser: false, user: messageData.user }]);
+      });
+    }
+  }, [session]);
 
   return (
     <ChatContainer isOpen={isOpen}>
