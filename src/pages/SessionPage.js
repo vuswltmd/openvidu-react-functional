@@ -12,19 +12,22 @@ import { Container, Button, VideoContainer, ButtonContainer, IconButton, IconIma
 const MAX_PARTICIPANTS = 4;
 
 function SessionPage() {
+    const navigate = useNavigate();
+    //채탕창 열고 닫기
     const [isOpen, setIsOpen] = useState(false);
     const toggleChat = () => setIsOpen(!isOpen);
     const handleCloseChat = () => setIsOpen(false);
 
     const { roomNumber } = useParams();
-    const navigate = useNavigate();
     const [session, setSession] = useState(undefined);
+
     const [mainStreamManager, setMainStreamManager] = useState(undefined);
     const [publisher, setPublisher] = useState(undefined);
     const [subscribers, setSubscribers] = useState([]);
     const [currentVideoDevice, setCurrentVideoDevice] = useState(null);
     const [messages, setMessages] = useState([]);  // 추가된 부분
     const [users, setUsers] = useState([]);        // 추가된 부분
+
     const OV = useRef(null);
     const hasJoined = useRef(false);
 
@@ -34,22 +37,32 @@ function SessionPage() {
         }
     }, [mainStreamManager]);
 
+    // 여기가 잘 동작하지 않는것 같음  -> 유저목록이 업데이트가 잘 안됨.
     const updateUsers = useCallback(() => {
+        console.log("------유저 업데이트 하기-------", session)
         if (session) {
-            console.log('Session connection data:', session.connection.data);
+            console.log('----세션 연결 데이터----', session.connection.data);
+            // Map 객체인 session.remoteConnections를 배열로 변환하여 사용
             const userList = [
                 { id: session.connection.connectionId, nickname: session.connection.data },
-                ...session.remoteConnections.map((conn) => ({
+                ...Array.from(session.remoteConnections.values()).map((conn) => ({
                     id: conn.connectionId,
                     nickname: conn.data,
-                })),
+                }))
             ];
             setUsers(userList);
             console.log('Updated users:', userList);
         }
     }, [session]);
 
+    useEffect(() => {
+        console.log("세션 상태 변경 후 유저 목록 업데이트 시도");
+        updateUsers();
+    }, [session, updateUsers]);
+
     const joinSession = useCallback(async () => {
+        console.log("----조인 세션 호출하기---------")
+
         if (hasJoined.current) {
             console.log('Already joined the session.');
             return;
@@ -74,6 +87,8 @@ function SessionPage() {
             }),
             addMessage: (message) => setMessages((prevMessages) => [...prevMessages, message]),
         });
+
+        console.log("------------마이세션 출력하기---------", mySession);
 
         OV.current = newOV;
 
@@ -111,13 +126,13 @@ function SessionPage() {
             setMainStreamManager(publisher);
             setCurrentVideoDevice(currentVideoDevice);
 
-            setSession(mySession);
-            hasJoined.current = true;
+            setSession(mySession); // 세션 설정
 
-            updateUsers();
+            hasJoined.current = true;
             mySession.on('connectionCreated', updateUsers);
             mySession.on('connectionDestroyed', updateUsers);
 
+            updateUsers();
         } catch (error) {
             console.log('There was an error connecting to the session:', error.code, error.message);
             if (error.code === 401) {
@@ -146,34 +161,6 @@ function SessionPage() {
         hasJoined.current = false;
     }, [session, publisher]);
 
-    const switchCamera = useCallback(async () => {
-        try {
-            const devices = await OV.current.getDevices();
-            const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-            if (videoDevices && videoDevices.length > 1) {
-                const newVideoDevice = videoDevices.filter(device => device.deviceId !== currentVideoDevice.deviceId);
-
-                if (newVideoDevice.length > 0) {
-                    const newPublisher = OV.current.initPublisher(undefined, {
-                        videoSource: newVideoDevice[0].deviceId,
-                        publishAudio: true,
-                        publishVideo: true,
-                        mirror: true,
-                    });
-
-                    await session.unpublish(mainStreamManager);
-                    await session.publish(newPublisher);
-                    setCurrentVideoDevice(newVideoDevice[0]);
-                    setMainStreamManager(newPublisher);
-                    setPublisher(newPublisher);
-                }
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    }, [currentVideoDevice, session, mainStreamManager]);
-
     useEffect(() => {
         joinSession();
         return () => {
@@ -189,7 +176,6 @@ function SessionPage() {
     return (
         <Container isOpen={isOpen}>
             <h1 style={{ color: 'red' }}>Room: {roomNumber}</h1>
-            <Button onClick={switchCamera}>Switch Camera</Button>
             <VideoContainer isOpen={isOpen}>
                 {mainStreamManager && (
                     <div onClick={() => handleMainVideoStream(mainStreamManager)}>
