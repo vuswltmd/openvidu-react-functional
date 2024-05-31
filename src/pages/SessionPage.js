@@ -7,7 +7,7 @@ import voiceIcon from '../assets/icons/voice_Icon.png';
 import headphoneIcon from '../assets/icons/headphone_Icon.png';
 import callEndIcon from '../assets/icons/call_end_Icon.png';
 import Chat from './chat';
-import { Container, Button, VideoContainer, ButtonContainer, IconButton, IconImage, ChatIcon } from './SessionPageStyle';
+import { Container, VideoContainer, ButtonContainer, IconButton, IconImage, ChatIcon } from './SessionPageStyle';
 
 const MAX_PARTICIPANTS = 4;
 
@@ -24,7 +24,7 @@ function SessionPage() {
     const [mainStreamManager, setMainStreamManager] = useState(undefined);
     const [publisher, setPublisher] = useState(undefined);
     const [subscribers, setSubscribers] = useState([]);
-    const [currentVideoDevice, setCurrentVideoDevice] = useState(null);
+    // const [currentVideoDevice, setCurrentVideoDevice] = useState(null);
     const [messages, setMessages] = useState([]);  // 추가된 부분
     const [users, setUsers] = useState([]);        // 추가된 부분
 
@@ -44,10 +44,10 @@ function SessionPage() {
             console.log('----세션 연결 데이터----', session.connection.data);
             // Map 객체인 session.remoteConnections를 배열로 변환하여 사용
             const userList = [
-                { id: session.connection.connectionId, nickname: session.connection.data },
+                { id: session.connection.connectionId, data: session.connection.data },
                 ...Array.from(session.remoteConnections.values()).map((conn) => ({
                     id: conn.connectionId,
-                    nickname: conn.data,
+                    data: conn.data,
                 }))
             ];
             setUsers(userList);
@@ -124,7 +124,7 @@ function SessionPage() {
             const currentVideoDevice = videoDevices.find(device => device.deviceId === currentVideoDeviceId);
 
             setMainStreamManager(publisher);
-            setCurrentVideoDevice(currentVideoDevice);
+            // setCurrentVideoDevice(currentVideoDevice);
 
             setSession(mySession); // 세션 설정
 
@@ -156,7 +156,7 @@ function SessionPage() {
         setSubscribers([]);
         setMainStreamManager(undefined);
         setPublisher(undefined);
-        setCurrentVideoDevice(null);
+        // setCurrentVideoDevice(null);
 
         hasJoined.current = false;
     }, [session, publisher]);

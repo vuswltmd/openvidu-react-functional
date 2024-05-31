@@ -149,15 +149,19 @@ export const MessageList = styled.div`
 `;
 
 export const Message = styled.div`
-  max-width: 80%;
+  max-width: 60%;
   padding: 10px;
+  margin: 5px 0;
   border-radius: 10px;
-  background-color: rgba(245, 245, 245, 0.23);
+  background-color: ${({ isUser }) => (isUser ? '#DCF8C6' : '#FFF')};
   align-self: ${({ isUser }) => (isUser ? 'flex-end' : 'flex-start')};
-  color: #fff;
+  color: #000;
   word-wrap: break-word;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+  display: flex;
+  align-items: center;
+  justify-content: ${({ isUser }) => (isUser ? 'flex-end' : 'flex-start')};
 `;
 
 export const InputContainer = styled.div`
